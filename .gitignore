@@ -1,0 +1,21 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Temporary and extract folders (large raw shapefiles)
+data/raw/_temp*/
+_temp*/
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+
+# Streamlit secrets (if any)
+.streamlit/secrets.toml
+
+# OS generated files
+.DS_Store
+Thumbs.db
