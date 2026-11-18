@@ -243,7 +243,10 @@ with st.sidebar:
                     st.rerun()
 
                 with st.expander("👁️ Preview 5 Baris Pertama"):
-                    st.dataframe(df_raw.head(5), use_container_width=True, hide_index=True)
+                    try:
+                        st.dataframe(df_raw.head(5), use_container_width=True, hide_index=True)
+                    except Exception:
+                        st.dataframe(df_raw.head(5).astype(str), use_container_width=True, hide_index=True)
 
             except Exception as e:
                 st.error(f"❌ Gagal membaca file: {e}")
