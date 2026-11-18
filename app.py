@@ -227,17 +227,20 @@ with st.sidebar:
                     df_mapped["tahun"] = pd.to_numeric(df_mapped["tahun"], errors="coerce").astype("Int64")
                     df_mapped = df_mapped.dropna(subset=["wilayah", "tahun", "tpt_aktual"])
 
-                    # Simpan sebagai CSV ke data/raw/ agar dipakai saat restart
+                    # Simpan sebagai CSV ke data/raw/ agar dipakai saat reload/restart
                     save_path = os.path.join(
                         os.path.dirname(__file__), "data", "raw", "data_tpt_jateng.csv"
                     )
                     df_mapped.to_csv(save_path, index=False)
+                    
+                    # Bersihkan cache Streamlit agar peta spasial dan semua modul langsung sinkron
+                    st.cache_data.clear()
                     st.success(
-                        f"✅ Dataset disimpan! ({len(df_mapped):,} baris, "
-                        f"{df_mapped['wilayah'].nunique()} wilayah). "
-                        "Klik **Rerun** untuk memuat ulang dashboard."
+                        f"✅ Dataset berhasil disimpan dan diselaraskan ke Peta Spasial! "
+                        f"({len(df_mapped):,} baris, {df_mapped['wilayah'].nunique()} wilayah)."
                     )
                     st.balloons()
+                    st.rerun()
 
                 with st.expander("👁️ Preview 5 Baris Pertama"):
                     st.dataframe(df_raw.head(5), use_container_width=True, hide_index=True)

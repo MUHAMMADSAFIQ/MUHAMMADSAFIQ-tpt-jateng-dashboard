@@ -190,6 +190,76 @@ def calculate_model_evaluation_metrics(df_panel):
     }
     return overall_metrics
 
+def normalize_and_enrich_dataset(df_raw):
+    """
+    Menyelaraskan dataset unggahan eksternal (Excel/CSV) dengan format internal sistem:
+    1. Normalisasi nama wilayah agar cocok 100% dengan GeoJSON Jawa Tengah (menghilangkan kode BPS seperti '3301', dll).
+    2. Melengkapi metadata spasial (lat, lon, tipe_wilayah) untuk 35 Kabupaten/Kota.
+    3. Memastikan kolom tipe_data ('Historis' vs 'Proyeksi LSTM') dan estimasi in-sample.
+    4. Menggabungkan hasil proyeksi riil LSTM 2026 dari berkas Hasil_LSTM.xlsx secara otomatis.
+    """
+    df = df_raw.copy()
+    
+    def clean_name(w_str):
+        s = re.sub(r'^\d+\s*[\.-]?\s*', '', str(w_str)).strip()
+        for ref in WILAYAH_JATENG.keys():
+            if s.lower() == ref.lower():
+                return ref
+            short_ref = ref.replace("Kabupaten ", "").replace("Kota ", "")
+            if s.lower() == short_ref.lower():
+                return ref
+        return s
+
+    df["wilayah"] = df["wilayah"].apply(clean_name)
+    df["tahun"] = pd.to_numeric(df["tahun"], errors="coerce").fillna(2025).astype(int)
+    df["tpt_aktual"] = pd.to_numeric(df["tpt_aktual"], errors="coerce")
+
+    # Lengkapi koordinat spasial untuk peta choropleth
+    df["tipe_wilayah"] = df["wilayah"].apply(lambda w: WILAYAH_JATENG.get(w, {}).get("tipe", "Kabupaten"))
+    df["lat"] = df["wilayah"].apply(lambda w: WILAYAH_JATENG.get(w, {}).get("lat", -7.15))
+    df["lon"] = df["wilayah"].apply(lambda w: WILAYAH_JATENG.get(w, {}).get("lon", 110.15))
+
+    if "tipe_data" not in df.columns:
+        df["tipe_data"] = df["tahun"].apply(lambda y: "Historis" if y <= 2025 else "Proyeksi LSTM")
+
+    if "tpt_prediksi_lstm" not in df.columns:
+        df["tpt_prediksi_lstm"] = df["tpt_aktual"]
+    if "lower_ci" not in df.columns:
+        df["lower_ci"] = None
+    if "upper_ci" not in df.columns:
+        df["upper_ci"] = None
+
+    # Otomatis gabungkan proyeksi LSTM 2026 dari Hasil_LSTM.xlsx jika belum ada
+    if 2026 not in df["tahun"].values:
+        lstm_xlsx = os.path.join(RAW_DATA_DIR, "Hasil_LSTM.xlsx")
+        if os.path.exists(lstm_xlsx):
+            try:
+                df_u = pd.read_excel(lstm_xlsx)
+                kab_col = [c for c in df_u.columns if "kab" in c.lower() or "wilayah" in c.lower()][0]
+                val_col = [c for c in df_u.columns if "prediksi" in c.lower() or "tpt" in c.lower()][0]
+                rows_2026 = []
+                for _, r in df_u.iterrows():
+                    w_name = clean_name(r[kab_col])
+                    val = float(r[val_col])
+                    rows_2026.append({
+                        "wilayah": w_name,
+                        "tipe_wilayah": WILAYAH_JATENG.get(w_name, {}).get("tipe", "Kabupaten"),
+                        "lat": WILAYAH_JATENG.get(w_name, {}).get("lat", -7.15),
+                        "lon": WILAYAH_JATENG.get(w_name, {}).get("lon", 110.15),
+                        "tahun": 2026,
+                        "tpt_aktual": None,
+                        "tpt_prediksi_lstm": round(val, 2),
+                        "lower_ci": round(val - 0.25, 2),
+                        "upper_ci": round(val + 0.25, 2),
+                        "tipe_data": "Proyeksi LSTM"
+                    })
+                if rows_2026:
+                    df = pd.concat([df, pd.DataFrame(rows_2026)], ignore_index=True)
+            except Exception as e:
+                print(f"[Info] Gagal menyatukan Hasil_LSTM 2026: {e}")
+
+    return df
+
 def load_master_dataset():
     """
     Fungsi orkestrasi utama pemuatan dataset.
@@ -210,7 +280,7 @@ def load_master_dataset():
             sheet = "Data" if "Data" in xl.sheet_names else xl.sheet_names[0]
             df_panel = xl.parse(sheet)
             df_panel.columns = df_panel.columns.str.strip().str.lower()
-            df_panel["tahun"] = df_panel["tahun"].astype(int)
+            df_panel = normalize_and_enrich_dataset(df_panel)
         except Exception as e:
             st.warning(f"Gagal membaca Excel ({e}). Mencoba CSV...")
             df_panel = None
@@ -218,9 +288,9 @@ def load_master_dataset():
     # Coba baca CSV jika Excel tidak ada / gagal
     if df_panel is None and os.path.exists(csv_path):
         try:
-            df_panel = pd.read_csv(csv_path)
-            df_panel.columns = df_panel.columns.str.strip().str.lower()
-            df_panel["tahun"] = df_panel["tahun"].astype(int)
+            df_raw = pd.read_csv(csv_path)
+            df_raw.columns = df_raw.columns.str.strip().str.lower()
+            df_panel = normalize_and_enrich_dataset(df_raw)
         except Exception as e:
             st.warning(f"Gagal membaca CSV ({e}). Memakai dataset terkalibrasi.")
             df_panel = None

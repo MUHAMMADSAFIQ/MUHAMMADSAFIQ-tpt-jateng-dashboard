@@ -32,9 +32,14 @@ def render_choropleth_map(df_panel, df_clustered, selected_year=2024, map_mode="
         how="left"
     )
 
-    # Tentukan nilai TPT yang ditampilkan (Aktual untuk <= 2024, Prediksi untuk >= 2025)
-    df_map["tpt_tampil"] = df_map["tpt_aktual"].fillna(df_map["tpt_prediksi_lstm"])
-    df_map["status_data"] = df_map["tipe_data"]
+    # Tentukan nilai TPT yang ditampilkan (Aktual untuk historis, Prediksi untuk tahun proyeksi 2026)
+    if "tpt_prediksi_lstm" in df_map.columns:
+        df_map["tpt_tampil"] = df_map["tpt_aktual"].fillna(df_map["tpt_prediksi_lstm"])
+    else:
+        df_map["tpt_tampil"] = df_map["tpt_aktual"]
+        
+    df_map["tpt_tampil"] = pd.to_numeric(df_map["tpt_tampil"], errors="coerce")
+    df_map["status_data"] = df_map["tipe_data"] if "tipe_data" in df_map.columns else ("Historis" if selected_year <= 2025 else "Proyeksi LSTM")
 
     # Plotly v7+ menggunakan px.choropleth_map (bukan choropleth_mapbox)
     # dengan parameter map_style menggantikan mapbox_style
