@@ -42,6 +42,7 @@ from components.kmeans_charts import (
     render_feature_boxplots
 )
 from utils.helpers import inject_custom_css, convert_df_to_csv
+from utils.exporter import generate_aesthetic_kmeans_excel, generate_aesthetic_lstm_excel
 
 # Inisialisasi Halaman Streamlit
 st.set_page_config(
@@ -477,6 +478,31 @@ elif menu_pilihan == "Peramalan LSTM (Time Series)":
     fig_rank = render_ranking_projection_chart(df_panel, target_year=2026)
     st.plotly_chart(fig_rank, use_container_width=True)
 
+    st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+    st.markdown("#### 📥 Ekspor Laporan Peramalan LSTM (Resmi Skripsi)")
+    st.caption("Unduh berkas hasil proyeksi berformat estetik dan profesional yang siap dilampirkan pada naskah skripsi:")
+    col_dl1, col_dl2 = st.columns([6, 6])
+    with col_dl1:
+        excel_lstm = generate_aesthetic_lstm_excel(df_panel)
+        st.download_button(
+            label="📊 Unduh Laporan Excel LSTM 2026 (.xlsx)",
+            data=excel_lstm,
+            file_name="Laporan_Peramalan_LSTM_2026_TPT_Jateng.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            help="Unduh tabel proyeksi 35 kabupaten/kota berformat resmi dan rapi untuk lampiran skripsi.",
+            use_container_width=True
+        )
+    with col_dl2:
+        csv_lstm = convert_df_to_csv(df_panel)
+        st.download_button(
+            label="📄 Unduh Data Panel Mentah (CSV)",
+            data=csv_lstm,
+            file_name="data_panel_tpt_jateng_2020_2026.csv",
+            mime="text/csv",
+            help="Unduh data panel format CSV untuk olah data mandiri.",
+            use_container_width=True
+        )
+
 # --------------------------------------------------------------------------------------
 # MODUL 3: KLASTERISASI SOSIO-EKONOMI K-MEANS
 # --------------------------------------------------------------------------------------
@@ -533,14 +559,30 @@ elif menu_pilihan == "Klasterisasi K-Means":
         hide_index=True
     )
 
-    # Tombol Ekspor Data CSV
-    csv_clustered = convert_df_to_csv(df_clustered)
-    st.download_button(
-        label="Unduh Data Hasil Klasterisasi (CSV)",
-        data=csv_clustered,
-        file_name="hasil_klasterisasi_tpt_jateng.csv",
-        mime="text/csv"
-    )
+    st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+    st.markdown("#### 📥 Ekspor Laporan Klasterisasi K-Means (Resmi Skripsi)")
+    st.caption("Unduh tabel hasil pengelompokan wilayah berformat estetik dengan penanda warna tipologi untuk lampiran skripsi:")
+    col_kdl1, col_kdl2 = st.columns([6, 6])
+    with col_kdl1:
+        excel_kmeans = generate_aesthetic_kmeans_excel(df_clustered, cluster_profiles)
+        st.download_button(
+            label="📊 Unduh Laporan Excel Klasterisasi (.xlsx)",
+            data=excel_kmeans,
+            file_name="Laporan_Klasterisasi_KMeans_TPT_Jateng.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            help="Unduh tabel tipologi klaster berformat estetik dengan penanda warna dan rekomendasi untuk lampiran skripsi.",
+            use_container_width=True
+        )
+    with col_kdl2:
+        csv_clustered = convert_df_to_csv(df_clustered)
+        st.download_button(
+            label="📄 Unduh Data Klasterisasi (CSV)",
+            data=csv_clustered,
+            file_name="hasil_klasterisasi_tpt_jateng.csv",
+            mime="text/csv",
+            help="Unduh data hasil klasterisasi dalam format CSV standar.",
+            use_container_width=True
+        )
 
 # --------------------------------------------------------------------------------------
 # MODUL 4: METODOLOGI & SINTESIS KEBIJAKAN SKRIPSI

@@ -363,6 +363,32 @@ def inject_custom_css():
             border-radius: 10px !important;
         }
 
+        /* Estetika Tombol Unduh & Aksi Laporan */
+        .stDownloadButton > button,
+        div[data-testid="stDownloadButton"] > button {
+            background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%) !important;
+            color: #FFFFFF !important;
+            font-weight: 600 !important;
+            font-size: 13px !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            border-radius: 12px !important;
+            padding: 10px 20px !important;
+            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35) !important;
+            transition: all 0.25s ease-in-out !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+
+        .stDownloadButton > button:hover,
+        div[data-testid="stDownloadButton"] > button:hover {
+            background: linear-gradient(135deg, #2563EB 0%, #60A5FA 100%) !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 8px 22px rgba(59, 130, 246, 0.5) !important;
+            border-color: rgba(255, 255, 255, 0.3) !important;
+            color: #FFFFFF !important;
+        }
+
         /* Scrollbar Halus */
         ::-webkit-scrollbar {
             width: 6px;
