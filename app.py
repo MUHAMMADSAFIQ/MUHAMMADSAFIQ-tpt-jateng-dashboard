@@ -116,16 +116,17 @@ with st.sidebar:
     )
 
     # Parameter Tahun Peta
+    default_year = 2025 if 2025 in ALL_YEARS else ALL_YEARS[-1]
     tahun_peta = st.select_slider(
         label="Tahun Peta Spasial:",
         options=ALL_YEARS,
-        value=2024,
-        help="Pilih tahun pengamatan untuk melihat evolusi spasial TPT dari 2015 hingga proyeksi 2027."
+        value=default_year,
+        help="Pilih tahun pengamatan untuk melihat evolusi spasial TPT dari 2020 hingga proyeksi 2026."
     )
 
     # Skenario Proyeksi LSTM
     skenario_lstm = st.selectbox(
-        label="Skenario Proyeksi LSTM (2025-2027):",
+        label="Skenario Proyeksi LSTM (2026):",
         options=[
             "Baseline",
             "Optimis (Pertumbuhan Investasi & Padat Karya)",
@@ -424,8 +425,8 @@ elif menu_pilihan == "Peramalan LSTM (Time Series)":
     st.markdown(f"### Analisis Deret Waktu & Proyeksi Model LSTM: {wilayah_terpilih}")
     st.write(
         f"""
-        Model **Long Short-Term Memory (LSTM)** menangani autokorelasi temporal non-linear data TPT (2015–2024)
-        dan memproyeksikan pergerakan hingga tahun 2027. Pada saat ini skenario yang aktif adalah:
+        Model **Long Short-Term Memory (LSTM)** menangani autokorelasi temporal non-linear data TPT (2020–2025)
+        dan memproyeksikan pergerakan target tahun **2026** (sesuai luaran skripsi). Pada saat ini skenario yang aktif adalah:
         **`{skenario_lstm}`**.
         """
     )
@@ -438,7 +439,7 @@ elif menu_pilihan == "Peramalan LSTM (Time Series)":
     col_stat1, col_stat2 = st.columns([6, 6])
 
     with col_stat1:
-        st.markdown("#### Diagnostik Residual In-Sample LSTM")
+        st.markdown("#### Diagnostik Residual Model LSTM (In-Sample)")
         fig_residual = render_lstm_residual_chart(df_wilayah_simulated)
         st.plotly_chart(fig_residual, use_container_width=True)
 
@@ -457,18 +458,17 @@ elif menu_pilihan == "Peramalan LSTM (Time Series)":
         st.markdown("##### Analisis Perubahan Historis & Estimasi Masa Depan:")
         st.markdown(
             f"""
-            - **Titik Awal (2015):** `{growth['tpt_2015']:.2f}%`
-            - **Puncak Pandemi (2020):** `{growth['tpt_2020_peak']:.2f}%` *(Lonjakan shock: `{growth['delta_2020_covid']:+.2f}%` poin)*
-            - **Posisi Terkini (2024):** `{growth['tpt_2024_latest']:.2f}%` *(Penurunan dari 2020: `{growth['delta_2024_vs_2020']:.2f}%` poin)*
-            - **Estimasi Target (2027):** `{growth['tpt_2027_proj']:.2f}%` *(Perubahan proyeksi: `{growth['projected_change_2027']:+.2f}%` poin)*
+            - **Titik Awal Periode (2020):** `{growth['tpt_2020']:.2f}%`
+            - **Posisi Historis Terkini (2025):** `{growth['tpt_2025_latest']:.2f}%` *(Tren 2020-2025: `{growth['delta_2025_vs_2020']:+.2f}%` poin)*
+            - **Proyeksi Target Skripsi (2026):** `{growth['tpt_2026_proj']:.2f}%` *(Estimasi peramalan: `{growth['projected_change_2026']:+.2f}%` poin)*
             """
         )
 
     st.divider()
 
-    # Perbandingan Peringkat Proyeksi 2027 Antar Wilayah
-    st.markdown("#### Peringkat Proyeksi TPT Antar Kabupaten/Kota Tahun 2027")
-    fig_rank = render_ranking_projection_chart(df_panel, target_year=2027)
+    # Perbandingan Peringkat Proyeksi 2026 Antar Wilayah
+    st.markdown("#### Peringkat Proyeksi TPT Antar Kabupaten/Kota Tahun 2026")
+    fig_rank = render_ranking_projection_chart(df_panel, target_year=2026)
     st.plotly_chart(fig_rank, use_container_width=True)
 
 # --------------------------------------------------------------------------------------
@@ -566,7 +566,7 @@ elif menu_pilihan == "Metodologi & Landasan Skripsi":
                $$h_t = o_t * \tanh(C_t)$$
             
             *Lookback Window* yang diterapkan pada skripsi ini adalah **3 tahun**, memungkinkan model mempelajari pola
-            siklus ketenagakerjaan daerah sebelum memproyeksikan periode 2025–2027.
+            siklus ketenagakerjaan daerah dari data historis (2020–2025) sebelum memproyeksikan target tahun 2026.
             """
         )
 

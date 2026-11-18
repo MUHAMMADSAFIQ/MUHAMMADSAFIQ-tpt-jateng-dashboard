@@ -28,10 +28,10 @@ def simulate_lstm_scenarios(df_wilayah_panel, scenario="Baseline", shock_percent
 
     adj = scenario_adjustments.get(scenario, 0.0)
 
-    # Terapkan penyesuaian hanya pada tahun-tahun proyeksi (>= 2025)
+    # Terapkan penyesuaian hanya pada tahun proyeksi (>= 2026)
     for idx, row in df_sim.iterrows():
-        if row["tahun"] >= 2025:
-            step = row["tahun"] - 2024
+        if row["tahun"] >= 2026:
+            step = row["tahun"] - 2025
             cumulative_adj = round(adj * (0.7 + 0.3 * step), 2)
             adjusted_pred = max(1.5, round(row["tpt_prediksi_lstm"] + cumulative_adj, 2))
             df_sim.at[idx, "tpt_prediksi_lstm"] = adjusted_pred
@@ -46,7 +46,7 @@ def simulate_lstm_scenarios(df_wilayah_panel, scenario="Baseline", shock_percent
 def calculate_time_series_growth(df_panel, wilayah=None):
     """
     Menghitung laju pertumbuhan TPT (YoY - Year on Year) dan perubahan absolut
-    antara tahun awal, tahun terakhir historis (2024), dan akhir proyeksi (2027).
+    antara tahun awal dataset (2020), tahun terakhir historis (2025), dan proyeksi LSTM (2026).
     """
     if wilayah and wilayah != "Seluruh Jawa Tengah (Rata-rata)":
         df_target = df_panel[df_panel["wilayah"] == wilayah].sort_values("tahun")
@@ -57,26 +57,27 @@ def calculate_time_series_growth(df_panel, wilayah=None):
             "tpt_prediksi_lstm": "mean"
         }).reset_index().sort_values("tahun")
 
-    # Hitung TPT gabungan (Aktual untuk <= 2024, Prediksi untuk >= 2025)
+    # Hitung TPT gabungan (Aktual untuk <= 2025, Prediksi untuk >= 2026)
     tpt_series = []
     for _, row in df_target.iterrows():
         val = row["tpt_aktual"] if not np.isnan(row["tpt_aktual"]) and row["tpt_aktual"] is not None else row["tpt_prediksi_lstm"]
         tpt_series.append(round(val, 2))
     df_target["tpt_final"] = tpt_series
 
-    val_2015 = df_target[df_target["tahun"] == 2015]["tpt_final"].values[0]
-    val_2020 = df_target[df_target["tahun"] == 2020]["tpt_final"].values[0]
-    val_2024 = df_target[df_target["tahun"] == 2024]["tpt_final"].values[0]
-    val_2027 = df_target[df_target["tahun"] == 2027]["tpt_final"].values[0]
+    def get_val(yr, default_idx=0):
+        m = df_target[df_target["tahun"] == yr]["tpt_final"]
+        return m.values[0] if len(m) > 0 else df_target["tpt_final"].iloc[default_idx]
+
+    val_2020 = get_val(2020, 0)
+    val_2025 = get_val(2025, -2 if len(df_target) >= 2 else 0)
+    val_2026 = get_val(2026, -1)
 
     growth_stats = {
-        "tpt_2015": val_2015,
-        "tpt_2020_peak": val_2020,
-        "tpt_2024_latest": val_2024,
-        "tpt_2027_proj": val_2027,
-        "delta_2020_covid": round(val_2020 - df_target[df_target["tahun"] == 2019]["tpt_final"].values[0], 2),
-        "delta_2024_vs_2020": round(val_2024 - val_2020, 2),
-        "projected_change_2027": round(val_2027 - val_2024, 2),
+        "tpt_2020": val_2020,
+        "tpt_2025_latest": val_2025,
+        "tpt_2026_proj": val_2026,
+        "delta_2025_vs_2020": round(val_2025 - val_2020, 2),
+        "projected_change_2026": round(val_2026 - val_2025, 2),
     }
 
     return growth_stats

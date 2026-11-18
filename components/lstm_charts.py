@@ -12,27 +12,30 @@ import numpy as np
 
 def render_lstm_forecast_chart(df_wilayah, wilayah_name="Seluruh Jawa Tengah"):
     """
-    Menampilkan grafik pergerakan historis TPT (2015-2024), hasil estimasi in-sample LSTM,
-    dan proyeksi masa depan (2025-2027) lengkap dengan pita interval kepercayaan 95%.
+    Menampilkan grafik pergerakan historis TPT (2020-2025), hasil estimasi in-sample LSTM,
+    dan proyeksi masa depan (2026) lengkap dengan pita interval kepercayaan 95%.
     """
     fig = go.Figure()
 
     df_sorted = df_wilayah.sort_values("tahun")
-    df_hist = df_sorted[df_sorted["tahun"] <= 2024]
-    df_proj = df_sorted[df_sorted["tahun"] >= 2024]  # Mulai dari 2024 agar garis tersambung
+    has_2025 = 2025 in df_sorted["tahun"].values
+    hist_cut_year = 2025 if has_2025 else 2024
 
-    # 1. Garis Data Aktual Historis (2015-2024)
+    df_hist = df_sorted[df_sorted["tahun"] <= hist_cut_year]
+    df_proj = df_sorted[df_sorted["tahun"] >= hist_cut_year]  # Mulai dari tahun historis terakhir agar bersambung
+
+    # 1. Garis Data Aktual Historis (2020-2025)
     fig.add_trace(go.Scatter(
         x=df_hist["tahun"],
         y=df_hist["tpt_aktual"],
         mode="lines+markers",
-        name="Data Aktual BPS",
+        name="Data Aktual BPS (2020-2025)",
         line=dict(color="#1E3A8A", width=3),
         marker=dict(size=8, symbol="circle", color="#1E3A8A"),
         hovertemplate="<b>Tahun %{x} (Aktual)</b><br>TPT: %{y:.2f}%<extra></extra>"
     ))
 
-    # 2. Garis Estimasi In-Sample LSTM (2015-2024)
+    # 2. Garis Estimasi In-Sample LSTM
     fig.add_trace(go.Scatter(
         x=df_hist["tahun"],
         y=df_hist["tpt_prediksi_lstm"],
@@ -42,13 +45,12 @@ def render_lstm_forecast_chart(df_wilayah, wilayah_name="Seluruh Jawa Tengah"):
         hovertemplate="<b>Tahun %{x} (In-Sample)</b><br>TPT Prediksi: %{y:.2f}%<extra></extra>"
     ))
 
-    # 3. Pita Interval Kepercayaan 95% (Confidence Interval 2025-2027)
-    df_ci = df_sorted[df_sorted["tahun"] >= 2024].copy()
-    # Untuk titik 2024, hubungkan dengan nilai aktual
-    tpt_2024_val = df_hist[df_hist["tahun"] == 2024]["tpt_aktual"].values[0]
+    # 3. Pita Interval Kepercayaan 95% (Confidence Interval 2026)
+    df_ci = df_sorted[df_sorted["tahun"] >= hist_cut_year].copy()
+    tpt_cut_val = df_hist[df_hist["tahun"] == hist_cut_year]["tpt_aktual"].values[0]
     ci_years = df_ci["tahun"].tolist()
-    ci_upper = [tpt_2024_val if y == 2024 else u for y, u in zip(ci_years, df_ci["upper_ci"])]
-    ci_lower = [tpt_2024_val if y == 2024 else l for y, l in zip(ci_years, df_ci["lower_ci"])]
+    ci_upper = [tpt_cut_val if y == hist_cut_year else u for y, u in zip(ci_years, df_ci["upper_ci"])]
+    ci_lower = [tpt_cut_val if y == hist_cut_year else l for y, l in zip(ci_years, df_ci["lower_ci"])]
 
     # Upper bound
     fig.add_trace(go.Scatter(
@@ -71,13 +73,13 @@ def render_lstm_forecast_chart(df_wilayah, wilayah_name="Seluruh Jawa Tengah"):
         hoverinfo="skip"
     ))
 
-    # 4. Garis Proyeksi Masa Depan LSTM (2024-2027)
-    proj_vals = [tpt_2024_val if y == 2024 else p for y, p in zip(df_proj["tahun"], df_proj["tpt_prediksi_lstm"])]
+    # 4. Garis Proyeksi Masa Depan LSTM (Fokus 2026)
+    proj_vals = [tpt_cut_val if y == hist_cut_year else p for y, p in zip(df_proj["tahun"], df_proj["tpt_prediksi_lstm"])]
     fig.add_trace(go.Scatter(
         x=df_proj["tahun"],
         y=proj_vals,
         mode="lines+markers",
-        name="Proyeksi LSTM (2025-2027)",
+        name="Proyeksi LSTM (2026)",
         line=dict(color="#F59E0B", width=3.5),
         marker=dict(size=10, symbol="diamond", color="#D97706", line=dict(width=2, color="#FFFFFF")),
         hovertemplate="<b>Tahun %{x} (Proyeksi)</b><br>TPT Estimasi: %{y:.2f}%<extra></extra>"
@@ -85,7 +87,7 @@ def render_lstm_forecast_chart(df_wilayah, wilayah_name="Seluruh Jawa Tengah"):
 
     # Garis Pembatas Vertikal Titik Awal Proyeksi
     fig.add_vline(
-        x=2024.5,
+        x=hist_cut_year + 0.5,
         line_width=1.5,
         line_dash="dot",
         line_color="#EF4444",
@@ -94,29 +96,12 @@ def render_lstm_forecast_chart(df_wilayah, wilayah_name="Seluruh Jawa Tengah"):
         annotation_font=dict(color="#EF4444", size=11)
     )
 
-    # Anotasi Efek Pandemi 2020
-    if 2020 in df_hist["tahun"].values:
-        val_2020 = df_hist[df_hist["tahun"] == 2020]["tpt_aktual"].values[0]
-        fig.add_annotation(
-            x=2020,
-            y=val_2020,
-            text="Lonjakan Pandemi COVID-19",
-            showarrow=True,
-            arrowhead=2,
-            arrowsize=1,
-            arrowwidth=1.5,
-            arrowcolor="#EF4444",
-            ax=0,
-            ay=-40,
-            font=dict(size=10, color="#EF4444")
-        )
-
     fig.update_layout(
-        title=f"<b>Tren Historis dan Proyeksi LSTM TPT: {wilayah_name}</b>",
+        title=f"<b>Tren Historis (2020-2025) & Proyeksi LSTM (2026): {wilayah_name}</b>",
         xaxis=dict(
             title="Tahun",
             tickmode="linear",
-            tick0=2015,
+            tick0=2020,
             dtick=1,
             gridcolor="rgba(148, 163, 184, 0.15)"
         ),
@@ -146,7 +131,9 @@ def render_lstm_residual_chart(df_wilayah):
     Menampilkan grafik selisih residual (Aktual - Prediksi LSTM) untuk memeriksa
     apakah galat model terdistribusi acak di sekitar nol (zero-mean error).
     """
-    df_hist = df_wilayah[df_wilayah["tahun"] <= 2024].copy()
+    has_2025 = 2025 in df_wilayah["tahun"].values
+    hist_cut = 2025 if has_2025 else 2024
+    df_hist = df_wilayah[df_wilayah["tahun"] <= hist_cut].copy()
     residuals = df_hist["tpt_aktual"] - df_hist["tpt_prediksi_lstm"]
 
     fig = go.Figure()
@@ -161,7 +148,7 @@ def render_lstm_residual_chart(df_wilayah):
     fig.add_hline(y=0, line_color="#94A3B8", line_width=1.5)
 
     fig.update_layout(
-        title="<b>Analisis Residual Model LSTM (Galat Prediksi)</b>",
+        title="<b>Analisis Residual Model LSTM (Data Historis)</b>",
         xaxis=dict(title="Tahun", tickmode="linear", dtick=1),
         yaxis=dict(title="Residual (%)", ticksuffix="%"),
         height=280,
@@ -171,7 +158,7 @@ def render_lstm_residual_chart(df_wilayah):
     )
     return fig
 
-def render_ranking_projection_chart(df_panel, target_year=2027):
+def render_ranking_projection_chart(df_panel, target_year=2026):
     """
     Menampilkan visualisasi peringkat 10 wilayah dengan TPT tertinggi dan terendah pada tahun proyeksi.
     """

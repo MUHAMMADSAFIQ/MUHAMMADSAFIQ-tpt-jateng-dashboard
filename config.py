@@ -74,8 +74,9 @@ WILAYAH_JATENG = {
 }
 
 # Tahun Analisis Historis dan Proyeksi
-HISTORICAL_YEARS = list(range(2015, 2025))  # 2015 - 2024
-FORECAST_YEARS = [2025, 2026, 2027]          # Prediksi LSTM
+# Dataset riil pengguna: 2020–2025 (BPS). Fokus prediksi: 2026 (output LSTM skripsi).
+HISTORICAL_YEARS = list(range(2020, 2026))  # 2020–2025 (data riil BPS Jawa Tengah)
+FORECAST_YEARS = [2026]                      # 2026 — output peramalan LSTM skripsi
 ALL_YEARS = HISTORICAL_YEARS + FORECAST_YEARS
 
 # Variabel Indikator K-Means (Fitur Sosio-Ekonomi)

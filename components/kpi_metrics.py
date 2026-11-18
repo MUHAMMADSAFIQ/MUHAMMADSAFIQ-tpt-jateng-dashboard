@@ -11,19 +11,23 @@ import pandas as pd
 def render_overview_kpis(df_panel, df_clustered, eval_metrics):
     """
     Menampilkan 4 kartu metrik modern:
-    1. Rata-rata TPT Terkini (2024) beserta tren YoY.
-    2. Proyeksi TPT LSTM (2027) beserta arah estimasi.
+    1. Rata-rata TPT Terkini (2025) beserta tren YoY vs 2024.
+    2. Proyeksi TPT LSTM (2026) fokus utama peramalan skripsi.
     3. Akurasi Model LSTM (MAPE & Interpretasi).
-    4. Wilayah Prioritas (Klaster Tinggi / TPT Tertinggi).
+    4. Wilayah Prioritas (Klaster Tinggi / TPT Tertinggi 2025).
     """
-    # 1. Rata-rata TPT 2024 vs 2023
-    tpt_2024 = df_panel[df_panel["tahun"] == 2024]["tpt_aktual"].mean()
-    tpt_2023 = df_panel[df_panel["tahun"] == 2023]["tpt_aktual"].mean()
-    delta_tpt = round(tpt_2024 - tpt_2023, 2)
+    # 1. Rata-rata TPT 2025 vs 2024
+    has_2025 = 2025 in df_panel["tahun"].values
+    latest_hist_year = 2025 if has_2025 else 2024
+    prev_hist_year = latest_hist_year - 1
 
-    # 2. Proyeksi 2027 vs 2024
-    tpt_2027 = df_panel[df_panel["tahun"] == 2027]["tpt_prediksi_lstm"].mean()
-    delta_proj = round(tpt_2027 - tpt_2024, 2)
+    tpt_latest = df_panel[df_panel["tahun"] == latest_hist_year]["tpt_aktual"].mean()
+    tpt_prev = df_panel[df_panel["tahun"] == prev_hist_year]["tpt_aktual"].mean()
+    delta_tpt = round(tpt_latest - tpt_prev, 2)
+
+    # 2. Proyeksi 2026 vs tahun historis terbaru
+    tpt_2026 = df_panel[df_panel["tahun"] == 2026]["tpt_prediksi_lstm"].mean()
+    delta_proj = round(tpt_2026 - tpt_latest, 2)
 
     # 3. Akurasi LSTM (MAPE)
     mape_val = eval_metrics["mape"]
@@ -35,8 +39,8 @@ def render_overview_kpis(df_panel, df_clustered, eval_metrics):
         mape_desc = "Cukup"
 
     # 4. Wilayah Tertinggi
-    df_2024_all = df_panel[df_panel["tahun"] == 2024]
-    highest_row = df_2024_all.sort_values("tpt_aktual", ascending=False).iloc[0]
+    df_latest_all = df_panel[df_panel["tahun"] == latest_hist_year]
+    highest_row = df_latest_all.sort_values("tpt_aktual", ascending=False).iloc[0]
 
     col1, col2, col3, col4 = st.columns(4)
 
@@ -45,15 +49,15 @@ def render_overview_kpis(df_panel, df_clustered, eval_metrics):
             f"""
             <div class="metric-card-pro">
                 <div class="metric-card-header">
-                    <span class="metric-title">Rerata TPT Jateng (2024)</span>
+                    <span class="metric-title">Rerata TPT Jateng ({latest_hist_year})</span>
                     <div class="metric-icon-wrap">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
                     </div>
                 </div>
-                <div class="metric-val">{tpt_2024:.2f}%</div>
+                <div class="metric-val">{tpt_latest:.2f}%</div>
                 <div class="metric-delta-row">
-                    <span class="delta-badge-green">↓ {delta_tpt:+.2f}%</span>
-                    <span style="color: #64748B; font-size: 11px;">vs 2023 ({tpt_2023:.2f}%)</span>
+                    <span class="delta-badge-green">{"↓" if delta_tpt <= 0 else "↑"} {abs(delta_tpt):.2f}%</span>
+                    <span style="color: #64748B; font-size: 11px;">vs {prev_hist_year} ({tpt_prev:.2f}%)</span>
                 </div>
             </div>
             """,
@@ -65,15 +69,15 @@ def render_overview_kpis(df_panel, df_clustered, eval_metrics):
             f"""
             <div class="metric-card-pro">
                 <div class="metric-card-header">
-                    <span class="metric-title">Proyeksi LSTM (2027)</span>
+                    <span class="metric-title">Proyeksi LSTM (2026)</span>
                     <div class="metric-icon-wrap">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
                     </div>
                 </div>
-                <div class="metric-val">{tpt_2027:.2f}%</div>
+                <div class="metric-val">{tpt_2026:.2f}%</div>
                 <div class="metric-delta-row">
-                    <span class="delta-badge-green">↓ {delta_proj:+.2f}%</span>
-                    <span style="color: #64748B; font-size: 11px;">Target Jangka Menengah</span>
+                    <span class="delta-badge-green">{"↓" if delta_proj <= 0 else "↑"} {abs(delta_proj):.2f}%</span>
+                    <span style="color: #64748B; font-size: 11px;">Fokus Luaran Skripsi</span>
                 </div>
             </div>
             """,
@@ -104,7 +108,7 @@ def render_overview_kpis(df_panel, df_clustered, eval_metrics):
             f"""
             <div class="metric-card-pro">
                 <div class="metric-card-header">
-                    <span class="metric-title">TPT Tertinggi (2024)</span>
+                    <span class="metric-title">TPT Tertinggi ({latest_hist_year})</span>
                     <div class="metric-icon-wrap">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                     </div>
